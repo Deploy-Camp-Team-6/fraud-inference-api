@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.core.logging import get_logger
+import os
 
 logger = get_logger(__name__)
 
@@ -54,6 +55,7 @@ class MlflowModelSelector:
     """
 
     def __init__(self):
+        self._set_mlflow_env()
         self.client = mlflow.tracking.MlflowClient(
             tracking_uri=settings.MLFLOW_TRACKING_URI
         )
@@ -62,6 +64,23 @@ class MlflowModelSelector:
             ModelStage.STAGING,
             ModelStage.NONE,
         ]
+
+    def _set_mlflow_env(self) -> None:
+        """Set MLflow authentication and storage environment variables."""
+        if settings.MLFLOW_TRACKING_USERNAME and settings.MLFLOW_TRACKING_PASSWORD:
+            os.environ["MLFLOW_TRACKING_USERNAME"] = settings.MLFLOW_TRACKING_USERNAME
+            os.environ["MLFLOW_TRACKING_PASSWORD"] = (
+                settings.MLFLOW_TRACKING_PASSWORD.get_secret_value()
+            )
+        if settings.MLFLOW_S3_ENDPOINT_URL:
+            os.environ["MLFLOW_S3_ENDPOINT_URL"] = settings.MLFLOW_S3_ENDPOINT_URL
+        if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
+            os.environ["AWS_ACCESS_KEY_ID"] = settings.AWS_ACCESS_KEY_ID
+            os.environ["AWS_SECRET_ACCESS_KEY"] = (
+                settings.AWS_SECRET_ACCESS_KEY.get_secret_value()
+            )
+        if settings.AWS_DEFAULT_REGION:
+            os.environ["AWS_DEFAULT_REGION"] = settings.AWS_DEFAULT_REGION
 
     def select_model_version(
         self, model_name: str, champion_alias: str = "champion"
