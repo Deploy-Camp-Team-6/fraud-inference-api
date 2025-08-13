@@ -22,8 +22,7 @@ def get_api_key(key: str = Security(api_key_header)) -> str:
     # Here, we check against a list from environment variables.
     # Using secrets.compare_digest helps prevent timing attacks.
     is_valid = any(
-        secrets.compare_digest(key, valid_key)
-        for valid_key in settings.API_KEYS
+        secrets.compare_digest(key, valid_key) for valid_key in settings.API_KEYS
     )
 
     if not is_valid:
