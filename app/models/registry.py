@@ -1,5 +1,6 @@
 from enum import Enum
 from operator import attrgetter
+from typing import Any
 
 import mlflow
 from mlflow.entities.model_registry import ModelVersion
@@ -82,20 +83,20 @@ class MlflowModelSelector:
         if settings.AWS_DEFAULT_REGION:
             os.environ["AWS_DEFAULT_REGION"] = settings.AWS_DEFAULT_REGION
 
-    def _model_version_to_dict(self, version: ModelVersion) -> dict:
+    def _model_version_to_dict(self, version: ModelVersion) -> dict[str, Any]:
         """Safely convert a MLflow ModelVersion object to a dictionary."""
         try:
-            return version.to_dict()
+            return version.to_dict()  # type: ignore[no-any-return]
         except AttributeError:
             attrs = {k.lstrip("_"): v for k, v in vars(version).items()}
-            keys = {
+            keys = [
                 "name",
                 "version",
                 "current_stage",
                 "run_id",
                 "source",
                 "last_updated_timestamp",
-            }
+            ]
             return {k: attrs.get(k) for k in keys}
 
     def select_model_version(
