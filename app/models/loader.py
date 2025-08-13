@@ -126,11 +126,18 @@ class ModelLoader:
         predict_fn = _pick_predict_fn(model)
 
         # 5. Warmup
-        signature = model.metadata.get_signature()
+        if hasattr(model.metadata, "get_signature"):
+            signature = model.metadata.get_signature()
+        else:
+            signature = model.metadata.signature
+
         if not signature:
             raise ValueError("Model is missing a signature.")
 
-        warmup_payload = _create_warmup_payload(signature.to_dict())
+        if not isinstance(signature, dict):
+            signature = signature.to_dict()
+
+        warmup_payload = _create_warmup_payload(signature)
 
         logger.info(
             "Warming up model with sample payload...",
@@ -161,7 +168,7 @@ class ModelLoader:
             stage=model_info.stage.value,
             run_id=model_info.run_id,
             uri=model_info.source_uri,
-            signature=signature.to_dict(),
+            signature=signature,
             model=model,
             predict_fn=predict_fn,
         )
