@@ -1,5 +1,6 @@
 import pytest
 import yaml  # type: ignore[import-untyped]
+from importlib.metadata import PackageNotFoundError
 from unittest.mock import patch
 
 from app.services.validator import DependencyValidator, DependencyValidationError
@@ -113,3 +114,33 @@ def test_validator_gpu_flavor_fails(validator, tmp_path, mock_mlflow_artifacts):
         assert error.library == "runtime"
         assert error.required == "cpu"
         assert error.running == "gpu"
+        
+
+@pytest.mark.parametrize(
+    "library",
+    ["psutil", "defusedxml", "imbalanced-learn"],
+)
+def test_validator_missing_dependency(
+    validator, tmp_path, mock_mlflow_artifacts, library
+):
+    """Test that missing dependencies raise a validation error."""
+    create_mock_model_files(tmp_path, conda_deps={"pip": [f"{library}==1.0.0"]})
+
+    def version_side_effect(lib):
+        if lib == library:
+            raise PackageNotFoundError
+        return "1.0.0"
+
+    with (
+        patch("mlflow.artifacts.download_artifacts", side_effect=mock_mlflow_artifacts),
+        patch("app.services.validator.version", side_effect=version_side_effect),
+    ):
+        with pytest.raises(DependencyValidationError) as exc_info:
+            validator.validate("fake_model_uri")
+
+        assert len(exc_info.value.errors) == 1
+        error = exc_info.value.errors[0]
+        assert error.library == library
+        assert error.required == "==1.0.0"
+        assert error.running == "Not installed"
+        assert error.policy == "compatible"

@@ -40,6 +40,9 @@ class Settings(BaseSettings):
         "pandas": "compatible",
         "numpy": "compatible",
         "mlflow": "compatible",
+        "psutil": "compatible",
+        "defusedxml": "compatible",
+        "imbalanced-learn": "compatible",
     }
 
     # Web Server Configuration
