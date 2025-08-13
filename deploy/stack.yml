@@ -12,11 +12,8 @@ services:
       MLFLOW_S3_ENDPOINT_URL: "${MLFLOW_S3_ENDPOINT_URL}"
       AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
       AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
-      AWS_DEFAULT_REGION: "${AWS_DEFAULT_REGION}"
-      API_KEYS: "${API_KEYS}"
       LOG_LEVEL: "${LOG_LEVEL:-info}"
       WORKERS: "${WORKERS:-4}"
-      CORS_ORIGINS: "${CORS_ORIGINS}"
     deploy:
       replicas: 2
       update_config:
@@ -25,20 +22,13 @@ services:
         order: stop-first
       restart_policy:
         condition: on-failure
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: '2G'
-        reservations:
-          cpus: '0.5'
-          memory: '1G'
       labels:
         # --- Traefik Labels for routing ---
         - "traefik.enable=true"
-        - "traefik.http.routers.fraud-api.rule=Host(`fraud-api.${DOMAIN}`)"
-        - "traefik.http.routers.fraud-api.entrypoints=websecure"
-        - "traefik.http.routers.fraud-api.tls.certresolver=myresolver"
-        - "traefik.http.services.fraud-api.loadbalancer.server.port=80"
+        - "traefik.http.routers.inference-api.rule=Host(`${DOMAIN}`)"
+        - "traefik.http.routers.inference-api.entrypoints=websecure"
+        - "traefik.http.routers.inference-api.tls.certresolver=myresolver"
+        - "traefik.http.services.inference-api.loadbalancer.server.port=8000"
         # Example of adding a middleware for rate limiting
         # - "traefik.http.routers.fraud-api.middlewares=my-rate-limit@docker"
         # - "traefik.http.middlewares.my-rate-limit.ratelimit.average=100"

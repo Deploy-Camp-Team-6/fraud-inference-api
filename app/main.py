@@ -83,18 +83,7 @@ app = FastAPI(
 # --- Middleware ---
 app.add_middleware(RequestIDMiddleware)
 
-if settings.CORS_ORIGINS:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[str(origin) for origin in settings.CORS_ORIGINS],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
 # --- Health Check Endpoints ---
-
-
 @app.get("/livez", tags=["Health"])
 async def livez():
     """
