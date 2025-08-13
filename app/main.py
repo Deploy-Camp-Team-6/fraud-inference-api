@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 
+import mlflow
 from fastapi import FastAPI, Response
 from prometheus_client import generate_latest
 from starlette.middleware.cors import CORSMiddleware
@@ -53,6 +54,7 @@ async def lifespan(app: FastAPI):
         git_sha=settings.GIT_SHA,
         build_time=settings.BUILD_TIME,
     )
+    mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
 
     loaded_bundles = _load_models()
     if len(loaded_bundles) == len(MODELS_TO_LOAD):
