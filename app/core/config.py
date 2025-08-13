@@ -1,4 +1,5 @@
-from typing import Any, Optional, cast
+import json
+from typing import Any, Optional, cast, Literal
 
 from pydantic import field_validator, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -31,6 +32,16 @@ class Settings(BaseSettings):
     SERVICE_THRESHOLD: float = 0.5
     ALLOW_EXTRA: bool = False
 
+    # Dependency Validation Rules
+    DEPENDENCY_VALIDATION_RULES: dict[str, Literal["exact", "compatible"]] = {
+        "scikit-learn": "compatible",
+        "xgboost": "compatible",
+        "lightgbm": "compatible",
+        "pandas": "compatible",
+        "numpy": "compatible",
+        "mlflow": "compatible",
+    }
+
     # Web Server Configuration
     LOG_LEVEL: str = "info"
     WORKERS: int = 2
@@ -47,6 +58,15 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return [key.strip() for key in v.split(",") if key.strip()]
         return cast(list[str], v)
+
+    @field_validator("DEPENDENCY_VALIDATION_RULES", mode="before")
+    @classmethod
+    def assemble_validation_rules(
+        cls, v: Any
+    ) -> dict[str, Literal["exact", "compatible"]]:
+        if isinstance(v, str):
+            return json.loads(v)
+        return cast(dict[str, Literal["exact", "compatible"]], v)
 
 
 settings = Settings()

@@ -50,7 +50,7 @@ def create_mock_model_files(tmp_path, conda_deps=None, mlmodel_flavors=None):
 
 
 def test_validator_sklearn_mismatch(validator, tmp_path, mock_mlflow_artifacts):
-    """Test that an exact mismatch for scikit-learn raises an error."""
+    """Test that a minor-version mismatch for scikit-learn raises an error."""
     create_mock_model_files(tmp_path)
 
     mock_versions = {
@@ -73,7 +73,7 @@ def test_validator_sklearn_mismatch(validator, tmp_path, mock_mlflow_artifacts):
         assert error.library == "scikit-learn"
         assert error.required == "==1.4.2"
         assert error.running == "1.5.0"
-        assert error.policy == "exact"
+        assert error.policy == "compatible"
 
 
 def test_validator_pandas_compatible(validator, tmp_path, mock_mlflow_artifacts):
