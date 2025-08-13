@@ -1,6 +1,6 @@
 from enum import Enum
 from operator import attrgetter
-from typing import Any
+from typing import Any, cast
 
 import mlflow
 from mlflow.entities.model_registry import ModelVersion
@@ -85,19 +85,16 @@ class MlflowModelSelector:
 
     def _model_version_to_dict(self, version: ModelVersion) -> dict[str, Any]:
         """Safely convert a MLflow ModelVersion object to a dictionary."""
-        try:
-            return version.to_dict()  # type: ignore[no-any-return]
-        except AttributeError:
-            attrs = {k.lstrip("_"): v for k, v in vars(version).items()}
-            keys = [
-                "name",
-                "version",
-                "current_stage",
-                "run_id",
-                "source",
-                "last_updated_timestamp",
-            ]
-            return {k: attrs.get(k) for k in keys}
+        attrs = {k.lstrip("_"): v for k, v in vars(version).items()}
+        keys = [
+            "name",
+            "version",
+            "current_stage",
+            "run_id",
+            "source",
+            "last_updated_timestamp",
+        ]
+        return {k: attrs.get(k) for k in keys}
 
     def select_model_version(
         self, model_name: str, champion_alias: str = "champion"
@@ -122,8 +119,11 @@ class MlflowModelSelector:
                     alias=champion_alias,
                     version=champion_version.version,
                 )
-                return ModelInfo.model_validate(
-                    self._model_version_to_dict(champion_version)
+                return cast(
+                    ModelInfo,
+                    ModelInfo.model_validate(
+                        self._model_version_to_dict(champion_version)
+                    ),
                 )
         except mlflow.exceptions.RestException as e:
             if e.error_code == "RESOURCE_DOES_NOT_EXIST":
@@ -159,8 +159,11 @@ class MlflowModelSelector:
                     stage=stage.value,
                     version=selected_version.version,
                 )
-                return ModelInfo.model_validate(
-                    self._model_version_to_dict(selected_version)
+                return cast(
+                    ModelInfo,
+                    ModelInfo.model_validate(
+                        self._model_version_to_dict(selected_version)
+                    ),
                 )
 
         logger.warning(
