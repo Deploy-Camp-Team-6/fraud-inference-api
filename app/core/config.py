@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     AWS_DEFAULT_REGION: Optional[str] = "us-east-1"
 
     # API Security
-    API_KEYS: list[SecretStr] = ["dev-key-1", "dev-key-2"]
+    API_KEYS: list[str] = ["dev-key-1", "dev-key-2"]
 
     # Model & Prediction Configuration
     SERVICE_THRESHOLD: float = 0.5
@@ -43,10 +43,10 @@ class Settings(BaseSettings):
 
     @field_validator("API_KEYS", mode="before")
     @classmethod
-    def assemble_api_keys(cls, v: Any) -> list[SecretStr]:
+    def assemble_api_keys(cls, v: Any) -> list[str]:
         if isinstance(v, str):
-            return [SecretStr(key.strip()) for key in v.split(",") if key.strip()]
-        return cast(list[SecretStr], v)
+            return [key.strip() for key in v.split(",") if key.strip()]
+        return cast(list[str], v)
 
 
 settings = Settings()
