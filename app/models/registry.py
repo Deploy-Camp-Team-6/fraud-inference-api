@@ -12,10 +12,12 @@ logger = get_logger(__name__)
 
 # --- Enums and Schemas ---
 
+
 class ModelStage(str, Enum):
     """
     Enum for MLflow model stages. Order defines preference.
     """
+
     PRODUCTION = "Production"
     STAGING = "Staging"
     NONE = "None"
@@ -29,10 +31,12 @@ class ModelStage(str, Enum):
         except ValueError:
             return cls.NONE
 
+
 class ModelInfo(BaseModel):
     """
     Pydantic model to store metadata of a selected model version.
     """
+
     name: str
     version: str
     stage: ModelStage
@@ -43,15 +47,25 @@ class ModelInfo(BaseModel):
 
 # --- Model Selector ---
 
+
 class MlflowModelSelector:
     """
     Selects the best version of a registered model from MLflow based on a set of rules.
     """
-    def __init__(self):
-        self.client = mlflow.tracking.MlflowClient(tracking_uri=settings.MLFLOW_TRACKING_URI)
-        self.stage_preference = [ModelStage.PRODUCTION, ModelStage.STAGING, ModelStage.NONE]
 
-    def select_model_version(self, model_name: str, champion_alias: str = "champion") -> ModelInfo | None:
+    def __init__(self):
+        self.client = mlflow.tracking.MlflowClient(
+            tracking_uri=settings.MLFLOW_TRACKING_URI
+        )
+        self.stage_preference = [
+            ModelStage.PRODUCTION,
+            ModelStage.STAGING,
+            ModelStage.NONE,
+        ]
+
+    def select_model_version(
+        self, model_name: str, champion_alias: str = "champion"
+    ) -> ModelInfo | None:
         """
         Selects the best model version according to the rules:
         1. Alias 'champion' if it exists.
@@ -62,7 +76,9 @@ class MlflowModelSelector:
 
         # 1. Check for 'champion' alias
         try:
-            champion_version = self.client.get_model_version_by_alias(model_name, champion_alias)
+            champion_version = self.client.get_model_version_by_alias(
+                model_name, champion_alias
+            )
             if champion_version:
                 logger.info(
                     "Selected model version by alias",
@@ -87,7 +103,9 @@ class MlflowModelSelector:
         versions.sort(key=attrgetter("last_updated_timestamp"), reverse=True)
 
         for stage in self.stage_preference:
-            stage_versions = [v for v in versions if ModelStage.from_str(v.current_stage) == stage]
+            stage_versions = [
+                v for v in versions if ModelStage.from_str(v.current_stage) == stage
+            ]
             if stage_versions:
                 if len(stage_versions) > 1:
                     logger.info(
@@ -105,5 +123,7 @@ class MlflowModelSelector:
                 )
                 return ModelInfo.model_validate(selected_version)
 
-        logger.warning("Could not select a model version based on any rule", model_name=model_name)
+        logger.warning(
+            "Could not select a model version based on any rule", model_name=model_name
+        )
         return None

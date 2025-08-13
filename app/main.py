@@ -94,6 +94,7 @@ if settings.CORS_ORIGINS:
 
 # --- Health Check Endpoints ---
 
+
 @app.get("/livez", tags=["Health"])
 async def livez():
     """
@@ -110,7 +111,11 @@ async def readyz():
     if app_state["models_ready"]:
         return {"status": "ok"}
     else:
-        return Response(content='{"status": "not_ready"}', status_code=503, media_type="application/json")
+        return Response(
+            content='{"status": "not_ready"}',
+            status_code=503,
+            media_type="application/json",
+        )
 
 
 @app.get("/metrics", tags=["Monitoring"])
@@ -119,6 +124,7 @@ async def metrics():
     Expose Prometheus metrics.
     """
     return Response(content=generate_latest(), media_type="text/plain")
+
 
 # --- API Routers ---
 app.include_router(api_router, prefix="/v1")

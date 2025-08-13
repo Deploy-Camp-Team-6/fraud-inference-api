@@ -7,6 +7,7 @@ from starlette.responses import Response
 
 REQUEST_ID_HEADER = "X-Request-ID"
 
+
 class RequestIDMiddleware(BaseHTTPMiddleware):
     """
     Middleware to add a unique request ID to each incoming request.
@@ -14,6 +15,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
     - Otherwise, a new UUID will be generated.
     - The ID is added to the structlog context and the response headers.
     """
+
     async def dispatch(
         self, request: Request, call_next: RequestResponseFunction
     ) -> Response:

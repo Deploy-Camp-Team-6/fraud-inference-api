@@ -6,11 +6,13 @@ from app.models.loader import ModelBundle
 
 logger = get_logger(__name__)
 
+
 class ModelStore:
     """
     A thread-safe, in-memory store for loaded model bundles.
     Provides atomic operations for replacing the entire set of models.
     """
+
     def __init__(self):
         self._lock = RLock()
         self._store: Mapping[str, ModelBundle] = {}
@@ -40,6 +42,7 @@ class ModelStore:
         with self._lock:
             self._store = bundles
         logger.info("Model store replaced successfully.")
+
 
 # A global instance of the model store that the application will use.
 model_store = ModelStore()

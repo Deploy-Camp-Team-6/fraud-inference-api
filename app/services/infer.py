@@ -12,6 +12,7 @@ from app.schemas.predict import (
     BatchPrediction,
 )
 
+
 class InferenceService:
     """
     Encapsulates the core logic for model inference.
@@ -62,7 +63,9 @@ class InferenceService:
         else:
             return pd.DataFrame([request.features.model_dump()])
 
-    def _validate_dataframe(self, df: pd.DataFrame, signature: dict) -> tuple[pd.DataFrame, list | None]:
+    def _validate_dataframe(
+        self, df: pd.DataFrame, signature: dict
+    ) -> tuple[pd.DataFrame, list | None]:
         """
         Validates the DataFrame against the model's signature.
         - Enforces column presence and order.
@@ -84,18 +87,24 @@ class InferenceService:
         # Ensure correct column order
         return df[expected_cols], None
 
-    def _create_single_result(self, score: float | None, threshold: float) -> SinglePrediction:
+    def _create_single_result(
+        self, score: float | None, threshold: float
+    ) -> SinglePrediction:
         """Creates a SinglePrediction object."""
         if score is None:
-             # This case happens if validation fails for the single row.
-             # A more robust implementation would have specific error handling here.
+            # This case happens if validation fails for the single row.
+            # A more robust implementation would have specific error handling here.
             return SinglePrediction(prediction=False, score=None, threshold=threshold)
 
         prediction = 1 if score >= threshold else 0
         return SinglePrediction(prediction=prediction, score=score, threshold=threshold)
 
-    def _create_batch_result(self, scores: list, errors: list | None, threshold: float) -> BatchPrediction:
+    def _create_batch_result(
+        self, scores: list, errors: list | None, threshold: float
+    ) -> BatchPrediction:
         """Creates a BatchPrediction object."""
         # This is a simplified version. A real implementation would map scores to non-error rows.
         predictions = [(1 if s >= threshold else 0) for s in scores]
-        return BatchPrediction(predictions=predictions, scores=scores, threshold=threshold, errors=errors)
+        return BatchPrediction(
+            predictions=predictions, scores=scores, threshold=threshold, errors=errors
+        )

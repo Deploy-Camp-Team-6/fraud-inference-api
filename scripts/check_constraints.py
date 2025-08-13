@@ -2,6 +2,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+
 def get_exported_deps() -> set[str]:
     """Exports production dependencies from poetry.lock."""
     try:
@@ -61,21 +62,33 @@ def main():
         print("✅ Dependencies are in sync.")
         sys.exit(0)
     else:
-        print("❌ Error: Drift detected between locked dependencies and constraints file!", file=sys.stderr)
+        print(
+            "❌ Error: Drift detected between locked dependencies and constraints file!",
+            file=sys.stderr,
+        )
 
         in_lock_not_constraints = exported_deps - constraints_deps
         if in_lock_not_constraints:
-            print("\nDependencies in poetry.lock but not in constraints-serve.txt:", file=sys.stderr)
+            print(
+                "\nDependencies in poetry.lock but not in constraints-serve.txt:",
+                file=sys.stderr,
+            )
             for dep in sorted(in_lock_not_constraints):
                 print(f"  + {dep}", file=sys.stderr)
 
         in_constraints_not_lock = constraints_deps - exported_deps
         if in_constraints_not_lock:
-            print("\nDependencies in constraints-serve.txt but not in poetry.lock:", file=sys.stderr)
+            print(
+                "\nDependencies in constraints-serve.txt but not in poetry.lock:",
+                file=sys.stderr,
+            )
             for dep in sorted(in_constraints_not_lock):
                 print(f"  - {dep}", file=sys.stderr)
 
-        print("\nPlease regenerate the constraints file by running the appropriate command.", file=sys.stderr)
+        print(
+            "\nPlease regenerate the constraints file by running the appropriate command.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
 
