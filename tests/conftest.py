@@ -13,9 +13,11 @@ model_registry_module.ModelVersion = object
 entities_module = types.ModuleType("mlflow.entities")
 entities_module.model_registry = model_registry_module
 
+
 class RestException(Exception):
     def __init__(self, error_code: str = ""):
         self.error_code = error_code
+
 
 exceptions_module = types.ModuleType("mlflow.exceptions")
 exceptions_module.RestException = RestException

@@ -114,7 +114,7 @@ def test_validator_gpu_flavor_fails(validator, tmp_path, mock_mlflow_artifacts):
         assert error.library == "runtime"
         assert error.required == "cpu"
         assert error.running == "gpu"
-        
+
 
 @pytest.mark.parametrize(
     "library",
