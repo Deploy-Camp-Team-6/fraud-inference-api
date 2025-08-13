@@ -6,7 +6,8 @@ ENV POETRY_VERSION=1.8.2
 ENV POETRY_HOME="/opt/poetry"
 ENV POETRY_VENV="/opt/poetry-venv"
 ENV POETRY_CACHE_DIR="/opt/poetry-cache"
-ENV PATH="$POETRY_HOME/bin:$PATH"
+# Ensure the Poetry executable installed inside the virtual environment is on PATH
+ENV PATH="$POETRY_VENV/bin:$PATH"
 
 # Install poetry
 RUN python -m venv $POETRY_VENV \
