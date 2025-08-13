@@ -68,8 +68,14 @@ class DependencyValidator:
             with open(model_path) as f:
                 mlmodel = yaml.safe_load(f)
         except Exception as e:
+            logger.error(
+                "Failed to download or parse MLmodel file",
+                model_uri=model_uri,
+                exc_info=e,
+            )
             raise DependencyValidationError(
-                f"Failed to download or parse MLmodel file from {model_uri}", []
+                f"Failed to download or parse MLmodel file from {model_uri}: {e}",
+                [],
             ) from e
 
         # Check for GPU requirements in a CPU-only environment
