@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for fraud detection API
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -33,7 +33,7 @@ COPY app/ ./app/
 # Create directories for model artifacts
 RUN mkdir -p /app/models /app/logs
 
-FROM python:3.11-slim as final
+FROM python:3.11-slim AS final
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
