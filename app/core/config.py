@@ -65,7 +65,8 @@ class Settings(BaseSettings):
         cls, v: Any
     ) -> dict[str, Literal["exact", "compatible"]]:
         if isinstance(v, str):
-            return json.loads(v)
+            data = json.loads(v)
+            return cast(dict[str, Literal["exact", "compatible"]], data)
         return cast(dict[str, Literal["exact", "compatible"]], v)
 
 
