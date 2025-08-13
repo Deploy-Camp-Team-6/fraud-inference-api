@@ -1,0 +1,153 @@
+name: Release Deploy
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        type: choice
+        required: true
+        options: [staging, production]
+        default: staging
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME_RAW: ghcr.io/${{ github.repository }}
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      image_name_lc: ${{ steps.normalize.outputs.image_name_lc }}
+      image_ref: ${{ steps.meta.outputs.image_ref }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Normalize image name to lowercase (GHCR requires it)
+        id: normalize
+        run: |
+          echo "image_name_lc=${IMAGE_NAME_RAW,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Set build metadata (env + short SHA)
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ENV="${{ github.event.inputs.environment }}"
+          else
+            ENV="staging"
+          fi
+          SHA_SHORT="${GITHUB_SHA::7}"
+          TAG="${ENV}-${SHA_SHORT}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "image_ref=${{ steps.normalize.outputs.image_name_lc }}:${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push image (amd64, cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_ref }}
+            ${{ steps.normalize.outputs.image_name_lc }}:latest
+          cache-from: type=registry,ref=${{ steps.normalize.outputs.image_name_lc }}:buildcache
+          cache-to: type=registry,ref=${{ steps.normalize.outputs.image_name_lc }}:buildcache,mode=max
+
+      - name: Prepare stack file with image tag
+        run: |
+          mkdir -p dist
+          sed "s|\${IMAGE_NAME}|${{ steps.meta.outputs.image_ref }}|g" deploy/stack.yml > dist/stack.resolved.yml
+
+      - name: Upload resolved stack file
+        uses: actions/upload-artifact@v4
+        with:
+          name: stack-${{ steps.meta.outputs.tag }}
+          path: dist/stack.resolved.yml
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'staging' }}
+    concurrency:
+      group: swarm-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'staging' }}
+      cancel-in-progress: false
+    steps:
+      - name: Download stack file
+        uses: actions/download-artifact@v4
+        with:
+          name: stack-${{ needs.build-and-push.outputs.tag }}
+
+      - name: Copy stack file to manager (/tmp)
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.SWARM_HOST }}
+          username: ${{ secrets.SWARM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          source: stack.resolved.yml
+          target: /tmp
+          overwrite: true
+          debug: true
+
+      - name: Deploy stack over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SWARM_HOST }}
+          username: ${{ secrets.SWARM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            STACK_NAME="${{ secrets.SWARM_STACK_NAME }}"
+
+            # ---- compose variable substitution ----
+            export DOMAIN="${{ secrets.DOMAIN }}"
+            export MLFLOW_TRACKING_URI="${{ secrets.MLFLOW_TRACKING_URI }}"
+            export MLFLOW_TRACKING_USERNAME="${{ secrets.MLFLOW_TRACKING_USERNAME }}"
+            export MLFLOW_TRACKING_PASSWORD="${{ secrets.MLFLOW_TRACKING_PASSWORD }}"
+            export MLFLOW_S3_ENDPOINT_URL="${{ secrets.MLFLOW_S3_ENDPOINT_URL }}"
+            export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
+            export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+            export AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION }}"
+
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            docker stack deploy -c /tmp/stack.resolved.yml "$STACK_NAME" --with-registry-auth
+
+            SERVICE="${STACK_NAME}_inference-api"
+            echo "Waiting for service $SERVICE to be healthy..."
+            for i in {1..30}; do
+              RUNNING=$(docker service ps --format '{{.CurrentState}}' "$SERVICE" | grep -c "Running" || true)
+              DESIRED=$(docker service inspect --format '{{ index .Spec.Mode.Replicated.Replicas }}' "$SERVICE" 2>/dev/null || echo 0)
+              if [ "$DESIRED" -gt 0 ] && [ "$RUNNING" -ge "$DESIRED" ]; then
+                echo "Service healthy: $RUNNING/$DESIRED replicas running."
+                exit 0
+              fi
+              echo "Waiting for service to be ready... ($RUNNING/$DESIRED running)"
+              sleep 5
+            done
+            echo "Service did not reach healthy state in time." >&2
+            docker service ps "$SERVICE" || true
+            exit 1
