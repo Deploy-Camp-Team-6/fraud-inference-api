@@ -1,60 +1,75 @@
-# --- Builder Stage ---
-# This stage installs dependencies into a virtual environment.
+# Multi-stage Dockerfile for fraud detection API
 FROM python:3.11-slim as builder
 
-ENV POETRY_VERSION=1.8.2
-ENV POETRY_HOME="/opt/poetry"
-ENV POETRY_VENV="/opt/poetry-venv"
-ENV POETRY_CACHE_DIR="/opt/poetry-cache"
-# Ensure the Poetry executable installed inside the virtual environment is on PATH
-ENV PATH="$POETRY_VENV/bin:$PATH"
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONHASHSEED=random \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=100
 
-# Install poetry
-RUN python -m venv $POETRY_VENV \
-    && $POETRY_VENV/bin/pip install -U pip setuptools \
-    && $POETRY_VENV/bin/pip install poetry==${POETRY_VERSION}
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set poetry configuration
-RUN poetry config virtualenvs.in-project true
-
+# Set work directory
 WORKDIR /app
 
-# Copy dependency definition files
+# Install Poetry
+RUN pip install --no-cache-dir poetry
+
+# Copy dependency definitions
 COPY pyproject.toml poetry.lock ./
 
-# Install production dependencies
-# Using --no-dev instead of --only main as it's more common in older versions
-# that might be encountered, though the goal is the same.
-RUN poetry install --no-dev --no-root --no-interaction
-
-
-# --- Final Stage ---
-# This stage creates the final, lean production image.
-FROM python:3.11-slim as final
-
-# Create a non-root user for security
-RUN groupadd --system app && useradd --system --gid app app
-
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV APP_HOME="/home/app"
-
-WORKDIR $APP_HOME
-
-# Copy virtual environment from builder stage
-COPY --from=builder /app/.venv/ $APP_HOME/.venv/
+# Install Python dependencies with Poetry
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-root --without dev
 
 # Copy application code
-COPY ./app $APP_HOME/app
+COPY app/ ./app/
 
-# Activate virtual environment
-ENV PATH="$APP_HOME/.venv/bin:$PATH"
+# Create directories for model artifacts
+RUN mkdir -p /app/models /app/logs
 
-# Change ownership and switch to non-root user
-RUN chown -R app:app $APP_HOME
-USER app
+FROM python:3.11-slim as final
 
-# Expose port and run the application
-EXPOSE 80
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--workers", "${WORKERS:-2}"]
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONHASHSEED=random \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=100
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Set work directory
+WORKDIR /app
+
+# Copy installed packages and application
+COPY --from=builder /usr/local /usr/local
+COPY --from=builder /app /app
+
+# Change ownership to appuser
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose ports
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/api/v1/health/live || exit 1
+
+# Run the application
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
