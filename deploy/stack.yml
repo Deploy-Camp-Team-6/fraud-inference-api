@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  inference-api:
+    image: ghcr.io/your-org/fraud-inference-api:latest # Replace with your actual image
+    environment:
+      # --- Production Environment Variables ---
+      # These should be managed via Docker Swarm secrets or a secure env file
+      MLFLOW_TRACKING_URI: "http://your-mlflow-server:5000"
+      API_KEYS: "prod-key-secret" # Load this from a Docker secret
+      LOG_LEVEL: "info"
+      WORKERS: "4" # Adjust based on your node's capacity
+      CORS_ORIGINS: "https://your-frontend-domain.com"
+      # MLFLOW S3 / AWS credentials should also be managed via secrets
+      # AWS_ACCESS_KEY_ID: ...
+      # AWS_SECRET_ACCESS_KEY: ...
+      # MLFLOW_S3_ENDPOINT_URL: ...
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '2G'
+        reservations:
+          cpus: '0.5'
+          memory: '1G'
+      labels:
+        # --- Traefik Labels for routing ---
+        - "traefik.enable=true"
+        - "traefik.http.routers.fraud-api.rule=Host(`fraud-api.your-domain.com`)"
+        - "traefik.http.routers.fraud-api.entrypoints=websecure"
+        - "traefik.http.routers.fraud-api.tls.certresolver=myresolver"
+        - "traefik.http.services.fraud-api.loadbalancer.server.port=80"
+        # Example of adding a middleware for rate limiting
+        # - "traefik.http.routers.fraud-api.middlewares=my-rate-limit@docker"
+        # - "traefik.http.middlewares.my-rate-limit.ratelimit.average=100"
+        # - "traefik.http.middlewares.my-rate-limit.ratelimit.burst=50"
+
+networks:
+  # This assumes you have a Traefik network set up
+  - traefik-public
+
+# You can define secrets here, which would be created on the Swarm manager
+# secrets:
+#   api_keys:
+#     external: true
+#   aws_access_key:
+#     external: true

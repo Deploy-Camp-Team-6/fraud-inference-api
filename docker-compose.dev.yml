@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:80"
+    volumes:
+      # Mount the application code for hot-reloading
+      - ./app:/home/app/app
+    env_file:
+      - .env.dev
+    # Override the CMD to enable hot-reloading for development
+    # Note: --workers 1 is recommended for reload mode.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 80 --reload --workers 1
