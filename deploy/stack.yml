@@ -4,8 +4,6 @@ services:
   inference-api:
     image: ${IMAGE_NAME}
     environment:
-      # --- Production Environment Variables ---
-      # These are substituted at deploy time from secrets
       MLFLOW_TRACKING_URI: "${MLFLOW_TRACKING_URI}"
       MLFLOW_TRACKING_USERNAME: "${MLFLOW_TRACKING_USERNAME}"
       MLFLOW_TRACKING_PASSWORD: "${MLFLOW_TRACKING_PASSWORD}"
@@ -25,24 +23,14 @@ services:
       restart_policy:
         condition: on-failure
       labels:
-        # --- Traefik Labels for routing ---
-        - "traefik.enable=true"
-        - "traefik.http.routers.inference-api.rule=Host(`${DOMAIN}`)"
-        - "traefik.http.routers.inference-api.entrypoints=websecure"
-        - "traefik.http.routers.inference-api.tls.certresolver=myresolver"
-        - "traefik.http.services.inference-api.loadbalancer.server.port=8000"
-        # Example of adding a middleware for rate limiting
-        # - "traefik.http.routers.fraud-api.middlewares=my-rate-limit@docker"
-        # - "traefik.http.middlewares.my-rate-limit.ratelimit.average=100"
-        # - "traefik.http.middlewares.my-rate-limit.ratelimit.burst=50"
+        - traefik.enable=true
+        - traefik.docker.network=traefik-public
+        - traefik.http.services.inference-api.loadbalancer.server.port=8000
+        - traefik.http.routers.inference-api.rule=Host(`${DOMAIN}`)
+        - traefik.http.routers.inference-api.entrypoints=websecure
+        - traefik.http.routers.inference-api.tls=true
+        - traefik.http.routers.inference-api.tls.certresolver=leresolver
 
 networks:
-  # This assumes you have a Traefik network set up
-  - traefik-public
-
-# You can define secrets here, which would be created on the Swarm manager
-# secrets:
-#   api_keys:
-#     external: true
-#   aws_access_key:
-#     external: true
+  traefik-public:
+    external: true
