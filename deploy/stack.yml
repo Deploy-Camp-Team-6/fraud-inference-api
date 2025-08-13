@@ -2,19 +2,18 @@ version: '3.8'
 
 services:
   inference-api:
-    image: ghcr.io/your-org/fraud-inference-api:latest # Replace with your actual image
+    image: ${IMAGE_NAME}
     environment:
       # --- Production Environment Variables ---
-      # These should be managed via Docker Swarm secrets or a secure env file
-      MLFLOW_TRACKING_URI: "http://your-mlflow-server:5000"
-      API_KEYS: "prod-key-secret" # Load this from a Docker secret
-      LOG_LEVEL: "info"
-      WORKERS: "4" # Adjust based on your node's capacity
-      CORS_ORIGINS: "https://your-frontend-domain.com"
-      # MLFLOW S3 / AWS credentials should also be managed via secrets
-      # AWS_ACCESS_KEY_ID: ...
-      # AWS_SECRET_ACCESS_KEY: ...
-      # MLFLOW_S3_ENDPOINT_URL: ...
+      # These are substituted at deploy time from secrets
+      MLFLOW_TRACKING_URI: "${MLFLOW_TRACKING_URI}"
+      MLFLOW_TRACKING_USERNAME: "${MLFLOW_TRACKING_USERNAME}"
+      MLFLOW_TRACKING_PASSWORD: "${MLFLOW_TRACKING_PASSWORD}"
+      MLFLOW_S3_ENDPOINT_URL: "${MLFLOW_S3_ENDPOINT_URL}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+      WORKERS: "${WORKERS:-4}"
     deploy:
       replicas: 2
       update_config:
@@ -23,20 +22,13 @@ services:
         order: stop-first
       restart_policy:
         condition: on-failure
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: '2G'
-        reservations:
-          cpus: '0.5'
-          memory: '1G'
       labels:
         # --- Traefik Labels for routing ---
         - "traefik.enable=true"
-        - "traefik.http.routers.fraud-api.rule=Host(`fraud-api.your-domain.com`)"
-        - "traefik.http.routers.fraud-api.entrypoints=websecure"
-        - "traefik.http.routers.fraud-api.tls.certresolver=myresolver"
-        - "traefik.http.services.fraud-api.loadbalancer.server.port=80"
+        - "traefik.http.routers.inference-api.rule=Host(`${DOMAIN}`)"
+        - "traefik.http.routers.inference-api.entrypoints=websecure"
+        - "traefik.http.routers.inference-api.tls.certresolver=myresolver"
+        - "traefik.http.services.inference-api.loadbalancer.server.port=8000"
         # Example of adding a middleware for rate limiting
         # - "traefik.http.routers.fraud-api.middlewares=my-rate-limit@docker"
         # - "traefik.http.middlewares.my-rate-limit.ratelimit.average=100"

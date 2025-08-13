@@ -25,23 +25,15 @@ class Settings(BaseSettings):
     AWS_DEFAULT_REGION: Optional[str] = "us-east-1"
 
     # API Security
-    API_KEYS: list[SecretStr] = []
-    REDIS_URL: Optional[str] = None
+    API_KEYS: list[str] = ["dev-key-1", "dev-key-2"]
 
     # Model & Prediction Configuration
     SERVICE_THRESHOLD: float = 0.5
     ALLOW_EXTRA: bool = False
-    INFER_TIMEOUT_MS: int = 5000
 
     # Web Server Configuration
     LOG_LEVEL: str = "info"
     WORKERS: int = 2
-    REQUEST_MAX_BYTES: int = 1_048_576  # 1MB
-    READ_TIMEOUT: int = 5
-    WRITE_TIMEOUT: int = 30
-
-    # CORS
-    CORS_ORIGINS: list[str] = []
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -51,16 +43,9 @@ class Settings(BaseSettings):
 
     @field_validator("API_KEYS", mode="before")
     @classmethod
-    def assemble_api_keys(cls, v: Any) -> list[SecretStr]:
+    def assemble_api_keys(cls, v: Any) -> list[str]:
         if isinstance(v, str):
-            return [SecretStr(key.strip()) for key in v.split(",") if key.strip()]
-        return cast(list[SecretStr], v)
-
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def assemble_cors_origins(cls, v: Any) -> list[str]:
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",") if origin.strip()]
+            return [key.strip() for key in v.split(",") if key.strip()]
         return cast(list[str], v)
 
 
