@@ -76,7 +76,7 @@ class PredictRequest(BaseModel):
 
 # ---- Response models ----
 class PredictionMeta(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, protected_namespaces=())
 
     model_name: str
     model_version: str
