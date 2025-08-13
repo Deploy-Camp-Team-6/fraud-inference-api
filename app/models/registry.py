@@ -87,7 +87,16 @@ class MlflowModelSelector:
         try:
             return version.to_dict()
         except AttributeError:
-            return vars(version)
+            attrs = {k.lstrip("_"): v for k, v in vars(version).items()}
+            keys = {
+                "name",
+                "version",
+                "current_stage",
+                "run_id",
+                "source",
+                "last_updated_timestamp",
+            }
+            return {k: attrs.get(k) for k in keys}
 
     def select_model_version(
         self, model_name: str, champion_alias: str = "champion"
