@@ -52,15 +52,3 @@ jobs:
       - name: Run tests with Pytest
         run: |
           poetry run pytest --cov=app --cov-report=xml
-
-      - name: Build Docker image
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: false # Set to true to push to a registry
-          tags: user/app:latest # Replace with your registry and tag
-          labels: |
-            org.opencontainers.image.source=${{ github.repositoryUrl }}
-            org.opencontainers.image.created=${{ steps.build.outputs.started-at }}
-            org.opencontainers.image.revision=${{ github.sha }}
