@@ -27,6 +27,9 @@ COPY pyproject.toml poetry.lock ./
 # that might be encountered, though the goal is the same.
 RUN poetry install --no-dev --no-root --no-interaction
 
+# Diagnostic step to verify uvicorn installation
+RUN ls -al /app/.venv/bin
+
 
 # --- Final Stage ---
 # This stage creates the final, lean production image.
@@ -43,7 +46,7 @@ ENV APP_HOME="/home/app"
 WORKDIR $APP_HOME
 
 # Copy virtual environment from builder stage
-COPY --from=builder /app/.venv/ $APP_HOME/.venv/
+COPY --from=builder /app/.venv $APP_HOME/.venv
 
 # Copy application code
 COPY ./app $APP_HOME/app
