@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 from prometheus_client import generate_latest
-from starlette.middleware.cors import CORSMiddleware
 
 from app.api.routers import router as api_router
 from app.core.config import settings
