@@ -1,5 +1,4 @@
-import os
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from pydantic import field_validator, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict

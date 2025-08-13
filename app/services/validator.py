@@ -1,6 +1,4 @@
-import os
 from importlib.metadata import version, PackageNotFoundError
-from pathlib import Path
 
 import mlflow
 import yaml

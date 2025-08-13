@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
-from typing import Union, Dict
+from fastapi import APIRouter, Depends, HTTPException
+from typing import Dict
 
 from app.core.config import settings
 from app.core.security import get_api_key
@@ -8,8 +8,6 @@ from app.models.store import model_store
 from app.schemas.predict import (
     PredictRequest,
     PredictResponse,
-    SingleInstanceRequest,
-    ModelKey,
 )
 from app.services.infer import InferenceService
 

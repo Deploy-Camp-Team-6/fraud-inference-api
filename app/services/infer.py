@@ -1,7 +1,6 @@
 import time
 import pandas as pd
 from uuid import uuid4
-from typing import List, Dict, Any, Union
 
 from app.core.config import settings
 from app.models.loader import ModelBundle

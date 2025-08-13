@@ -1,5 +1,4 @@
 import logging
-import sys
 
 import structlog
 from structlog.types import Processor

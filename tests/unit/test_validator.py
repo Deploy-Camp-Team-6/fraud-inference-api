@@ -1,9 +1,8 @@
 import pytest
 import yaml
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from app.services.validator import DependencyValidator, DependencyValidationError, DependencyError
-from packaging.version import Version
+from app.services.validator import DependencyValidator, DependencyValidationError
 
 @pytest.fixture
 def validator():

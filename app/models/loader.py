@@ -1,5 +1,5 @@
 import time
-from typing import Any, Callable, TypedDict
+from typing import Callable, TypedDict
 
 import mlflow
 import numpy as np
@@ -8,7 +8,7 @@ from mlflow.pyfunc import PyFuncModel
 
 from app.core.logging import get_logger
 from app.core.metrics import MODEL_WARMUP_LATENCY_SECONDS, MODEL_LOAD_SUCCESS_TOTAL
-from app.models.registry import MlflowModelSelector, ModelInfo
+from app.models.registry import MlflowModelSelector
 from app.services.validator import DependencyValidator
 
 logger = get_logger(__name__)

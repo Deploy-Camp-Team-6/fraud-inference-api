@@ -4,6 +4,7 @@ from fastapi import FastAPI, Response
 from prometheus_client import generate_latest
 from starlette.middleware.cors import CORSMiddleware
 
+from app.api.routers import router as api_router
 from app.core.config import settings
 from app.middleware.request_id import RequestIDMiddleware
 from app.core.logging import setup_logging, get_logger
@@ -120,6 +121,4 @@ async def metrics():
     return Response(content=generate_latest(), media_type="text/plain")
 
 # --- API Routers ---
-from app.api.routers import router as api_router
-
 app.include_router(api_router, prefix="/v1")
