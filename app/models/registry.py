@@ -82,6 +82,13 @@ class MlflowModelSelector:
         if settings.AWS_DEFAULT_REGION:
             os.environ["AWS_DEFAULT_REGION"] = settings.AWS_DEFAULT_REGION
 
+    def _model_version_to_dict(self, version: ModelVersion) -> dict:
+        """Safely convert a MLflow ModelVersion object to a dictionary."""
+        try:
+            return version.to_dict()
+        except AttributeError:
+            return vars(version)
+
     def select_model_version(
         self, model_name: str, champion_alias: str = "champion"
     ) -> ModelInfo | None:
@@ -105,7 +112,9 @@ class MlflowModelSelector:
                     alias=champion_alias,
                     version=champion_version.version,
                 )
-                return ModelInfo.model_validate(champion_version.to_dictionary())
+                return ModelInfo.model_validate(
+                    self._model_version_to_dict(champion_version)
+                )
         except mlflow.exceptions.RestException as e:
             if e.error_code == "RESOURCE_DOES_NOT_EXIST":
                 logger.debug("No champion alias found for model", model_name=model_name)
@@ -140,7 +149,9 @@ class MlflowModelSelector:
                     stage=stage.value,
                     version=selected_version.version,
                 )
-                return ModelInfo.model_validate(selected_version.to_dictionary())
+                return ModelInfo.model_validate(
+                    self._model_version_to_dict(selected_version)
+                )
 
         logger.warning(
             "Could not select a model version based on any rule", model_name=model_name
