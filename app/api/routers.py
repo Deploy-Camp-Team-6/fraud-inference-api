@@ -3,7 +3,6 @@ from typing import Dict
 
 from app.core.config import settings
 from app.core.security import get_api_key
-from app.main import _load_models
 from app.models.store import model_store
 from app.schemas.predict import (
     PredictRequest,
@@ -32,6 +31,8 @@ async def refresh_models() -> Dict[str, Dict[str, str]]:
 
     # This should be run in a background thread in a real-world scenario
     # to avoid blocking the server.
+    from app.main import _load_models
+
     new_bundles = _load_models()
 
     if not new_bundles:

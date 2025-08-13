@@ -56,18 +56,19 @@ class PredictRequest(BaseModel):
     )
 
     @model_validator(mode="after")
-    def _exactly_one_payload(cls, values: "PredictRequest") -> "PredictRequest":
-        has_single = values.features is not None
-        has_batch = values.instances is not None and len(values.instances) > 0
+    def _exactly_one_payload(self) -> "PredictRequest":
+        """Ensure exactly one payload type is provided."""
+        has_single = self.features is not None
+        instances = self.instances
+        has_batch = instances is not None and len(instances) > 0
         if has_single == has_batch:
-            # both provided or both missing
             raise ValueError(
                 'Provide exactly one of "features" or "instances (non-empty)".'
             )
-        if has_batch:
-            if len(values.instances) > 10_000:
+        if has_batch and instances is not None:
+            if len(instances) > 10_000:
                 raise ValueError("Batch size exceeds the maximum of 10_000 rows.")
-        return values
+        return self
 
     def is_batch(self) -> bool:
         return self.instances is not None

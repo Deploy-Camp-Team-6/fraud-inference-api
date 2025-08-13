@@ -15,7 +15,7 @@ class ModelStore:
 
     def __init__(self):
         self._lock = RLock()
-        self._store: Mapping[str, ModelBundle] = {}
+        self._store: dict[str, ModelBundle] = {}
 
     def get(self, key: str) -> ModelBundle | None:
         """
@@ -40,7 +40,7 @@ class ModelStore:
         """
         logger.info("Replacing all models in the store.")
         with self._lock:
-            self._store = bundles
+            self._store = dict(bundles)
         logger.info("Model store replaced successfully.")
 
 

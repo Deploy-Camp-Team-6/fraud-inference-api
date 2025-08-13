@@ -1,5 +1,5 @@
 import pytest
-import yaml
+import yaml  # type: ignore[import-untyped]
 from unittest.mock import patch
 
 from app.services.validator import DependencyValidator, DependencyValidationError

@@ -64,7 +64,7 @@ def _create_warmup_payload(signature: dict) -> pd.DataFrame:
     if not inputs:
         raise ValueError("Model signature has no inputs, cannot create warmup payload.")
 
-    data = {}
+    data: dict[str, list[int | float | str]] = {}
     for inp in inputs:
         name = inp["name"]
         dtype = inp["type"]

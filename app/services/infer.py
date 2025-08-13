@@ -31,11 +31,17 @@ class InferenceService:
         validated_df, errors = self._validate_dataframe(df, bundle["signature"])
 
         # 3. Perform inference
-        scores = bundle["predict_fn"](validated_df) if not validated_df.empty else []
+        scores_raw = (
+            bundle["predict_fn"](validated_df) if not validated_df.empty else []
+        )
+        scores: list[float] = (
+            list(scores_raw) if not isinstance(scores_raw, list) else scores_raw
+        )
 
         # 4. Apply threshold and assemble results
         threshold = request.threshold or settings.SERVICE_THRESHOLD
 
+        result: BatchPrediction | SinglePrediction
         if request.is_batch():
             result = self._create_batch_result(scores, errors, threshold)
         else:
@@ -59,8 +65,10 @@ class InferenceService:
     def _create_dataframe(self, request: PredictRequest) -> pd.DataFrame:
         """Creates a pandas DataFrame from the prediction request."""
         if request.is_batch():
+            assert request.instances is not None
             return pd.DataFrame([row.model_dump() for row in request.instances])
         else:
+            assert request.features is not None
             return pd.DataFrame([request.features.model_dump()])
 
     def _validate_dataframe(
@@ -100,11 +108,13 @@ class InferenceService:
         return SinglePrediction(prediction=prediction, score=score, threshold=threshold)
 
     def _create_batch_result(
-        self, scores: list, errors: list | None, threshold: float
+        self, scores: list[float], errors: list | None, threshold: float
     ) -> BatchPrediction:
         """Creates a BatchPrediction object."""
         # This is a simplified version. A real implementation would map scores to non-error rows.
-        predictions = [(1 if s >= threshold else 0) for s in scores]
+        predictions: list[int | float | bool] = [
+            1 if s >= threshold else 0 for s in scores
+        ]
         return BatchPrediction(
             predictions=predictions, scores=scores, threshold=threshold, errors=errors
         )

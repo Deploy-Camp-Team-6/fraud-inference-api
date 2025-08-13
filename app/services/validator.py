@@ -1,7 +1,7 @@
 from importlib.metadata import version, PackageNotFoundError
 
 import mlflow
-import yaml
+import yaml  # type: ignore[import-untyped]
 from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 from typing import Literal
@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 # --- Configuration ---
 
 # Rules: library -> "exact" or "compatible"
-VALIDATION_RULES = {
+VALIDATION_RULES: dict[str, Literal["exact", "compatible"]] = {
     "scikit-learn": "exact",
     "xgboost": "exact",
     "lightgbm": "exact",
@@ -53,7 +53,7 @@ class DependencyValidator:
     Validates the dependencies of an MLflow model against the current environment.
     """
 
-    def validate(self, model_uri: str):
+    def validate(self, model_uri: str) -> None:
         """
         Parses model dependencies and compares them against the current environment.
         Raises DependencyValidationError if there are mismatches.
@@ -208,7 +208,10 @@ class DependencyValidator:
         return dependencies.get(lib)
 
     def _is_version_valid(
-        self, required_spec_str: str, installed_version: Version, rule: str
+        self,
+        required_spec_str: str,
+        installed_version: Version,
+        rule: Literal["exact", "compatible"],
     ) -> bool:
         """Checks if the installed version satisfies the required specifier based on the rule."""
         logger.debug(
