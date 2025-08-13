@@ -40,7 +40,7 @@ class ModelInfo(BaseModel):
 
     name: str
     version: str
-    stage: ModelStage
+    stage: ModelStage = Field(alias="current_stage")
     run_id: str
     source_uri: str = Field(..., alias="source")
     last_updated_timestamp: int
@@ -105,7 +105,7 @@ class MlflowModelSelector:
                     alias=champion_alias,
                     version=champion_version.version,
                 )
-                return ModelInfo.model_validate(champion_version)
+                return ModelInfo.model_validate(champion_version.to_dictionary())
         except mlflow.exceptions.RestException as e:
             if e.error_code == "RESOURCE_DOES_NOT_EXIST":
                 logger.debug("No champion alias found for model", model_name=model_name)
@@ -140,7 +140,7 @@ class MlflowModelSelector:
                     stage=stage.value,
                     version=selected_version.version,
                 )
-                return ModelInfo.model_validate(selected_version)
+                return ModelInfo.model_validate(selected_version.to_dictionary())
 
         logger.warning(
             "Could not select a model version based on any rule", model_name=model_name
