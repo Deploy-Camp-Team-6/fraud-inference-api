@@ -5,6 +5,7 @@ import mlflow
 import numpy as np
 import pandas as pd
 from mlflow.pyfunc import PyFuncModel
+from mlflow.exceptions import MlflowException
 
 from app.core.logging import get_logger
 from app.core.metrics import MODEL_WARMUP_LATENCY_SECONDS, MODEL_LOAD_SUCCESS_TOTAL
@@ -41,9 +42,15 @@ def _pick_predict_fn(
     Prefers probability scores for classifiers, otherwise falls back to predict.
     """
     # The actual model is often wrapped, e.g., in `model.models` for pipelines
-    unwrapped_model = (
-        model.unwrap_python_model() if hasattr(model, "unwrap_python_model") else model
-    )
+    unwrapped_model = model
+    if hasattr(model, "unwrap_python_model"):
+        try:
+            unwrapped_model = model.unwrap_python_model()
+        except MlflowException:
+            logger.warning(
+                "Failed to unwrap underlying model; using original pyfunc model",
+                exc_info=True,
+            )
 
     if hasattr(unwrapped_model, "predict_proba"):
         logger.info("Using 'predict_proba' for model prediction.")
