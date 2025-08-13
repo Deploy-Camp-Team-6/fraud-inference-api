@@ -8,6 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from app.core.config import settings
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -15,14 +16,9 @@ logger = get_logger(__name__)
 # --- Configuration ---
 
 # Rules: library -> "exact" or "compatible"
-VALIDATION_RULES: dict[str, Literal["exact", "compatible"]] = {
-    "scikit-learn": "exact",
-    "xgboost": "exact",
-    "lightgbm": "exact",
-    "pandas": "compatible",
-    "numpy": "compatible",
-    "mlflow": "compatible",
-}
+VALIDATION_RULES: dict[str, Literal["exact", "compatible"]] = (
+    settings.DEPENDENCY_VALIDATION_RULES
+)
 
 # --- Schemas & Exceptions ---
 
