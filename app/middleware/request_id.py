@@ -1,11 +1,12 @@
 from uuid import uuid4
 
 import structlog
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseFunction
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
 
 REQUEST_ID_HEADER = "X-Request-ID"
+
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
     """
@@ -14,8 +15,9 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
     - Otherwise, a new UUID will be generated.
     - The ID is added to the structlog context and the response headers.
     """
+
     async def dispatch(
-        self, request: Request, call_next: RequestResponseFunction
+        self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         # Get request ID from headers or generate a new one
         request_id = request.headers.get(REQUEST_ID_HEADER, str(uuid4()))
@@ -25,7 +27,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         structlog.contextvars.bind_contextvars(request_id=request_id)
 
         # Process the request
-        response = await call_next(request)
+        response: Response = await call_next(request)
 
         # Add request ID to response headers
         response.headers[REQUEST_ID_HEADER] = request_id

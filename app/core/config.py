@@ -1,5 +1,4 @@
-import os
-from typing import Any, List, Optional
+from typing import Any, Optional, cast
 
 from pydantic import field_validator, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,7 +14,7 @@ class Settings(BaseSettings):
     GIT_SHA: str = "dev"
 
     # MLflow Configuration
-    MLFLOW_TRACKING_URI: str
+    MLFLOW_TRACKING_URI: str = ""
     MLFLOW_TRACKING_USERNAME: Optional[str] = None
     MLFLOW_TRACKING_PASSWORD: Optional[SecretStr] = None
     MLFLOW_S3_ENDPOINT_URL: Optional[str] = None
@@ -55,14 +54,14 @@ class Settings(BaseSettings):
     def assemble_api_keys(cls, v: Any) -> list[SecretStr]:
         if isinstance(v, str):
             return [SecretStr(key.strip()) for key in v.split(",") if key.strip()]
-        return v
+        return cast(list[SecretStr], v)
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Any) -> list[str]:
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v
+        return cast(list[str], v)
 
 
 settings = Settings()

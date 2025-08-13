@@ -1,26 +1,27 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
-from typing import Union, Dict
+from fastapi import APIRouter, Depends, HTTPException
+from typing import Dict
 
 from app.core.config import settings
 from app.core.security import get_api_key
-from app.main import _load_models
 from app.models.store import model_store
 from app.schemas.predict import (
     PredictRequest,
     PredictResponse,
-    SingleInstanceRequest,
-    ModelKey,
 )
 from app.services.infer import InferenceService
 
 
 router = APIRouter()
 
+
 def get_inference_service():
     """Dependency injector for the inference service."""
     return InferenceService()
 
-@router.post("/admin/refresh-models", tags=["Admin"], dependencies=[Depends(get_api_key)])
+
+@router.post(
+    "/admin/refresh-models", tags=["Admin"], dependencies=[Depends(get_api_key)]
+)
 async def refresh_models() -> Dict[str, Dict[str, str]]:
     """
     Reloads all models from the registry, providing a hot-swap.
@@ -30,10 +31,14 @@ async def refresh_models() -> Dict[str, Dict[str, str]]:
 
     # This should be run in a background thread in a real-world scenario
     # to avoid blocking the server.
+    from app.main import _load_models
+
     new_bundles = _load_models()
 
     if not new_bundles:
-        raise HTTPException(status_code=500, detail="Failed to load any models during refresh.")
+        raise HTTPException(
+            status_code=500, detail="Failed to load any models during refresh."
+        )
 
     model_store.replace_all(new_bundles)
 
@@ -86,7 +91,7 @@ async def version():
             "version": bundle["version"],
             "stage": bundle["stage"],
             "run_id": bundle["run_id"],
-            "signature_inputs": [col["name"] for col in bundle["signature"]["inputs"]]
+            "signature_inputs": [col["name"] for col in bundle["signature"]["inputs"]],
         }
 
     return {

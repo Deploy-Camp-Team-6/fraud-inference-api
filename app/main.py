@@ -4,6 +4,7 @@ from fastapi import FastAPI, Response
 from prometheus_client import generate_latest
 from starlette.middleware.cors import CORSMiddleware
 
+from app.api.routers import router as api_router
 from app.core.config import settings
 from app.middleware.request_id import RequestIDMiddleware
 from app.core.logging import setup_logging, get_logger
@@ -93,6 +94,7 @@ if settings.CORS_ORIGINS:
 
 # --- Health Check Endpoints ---
 
+
 @app.get("/livez", tags=["Health"])
 async def livez():
     """
@@ -109,7 +111,11 @@ async def readyz():
     if app_state["models_ready"]:
         return {"status": "ok"}
     else:
-        return Response(content='{"status": "not_ready"}', status_code=503, media_type="application/json")
+        return Response(
+            content='{"status": "not_ready"}',
+            status_code=503,
+            media_type="application/json",
+        )
 
 
 @app.get("/metrics", tags=["Monitoring"])
@@ -119,7 +125,6 @@ async def metrics():
     """
     return Response(content=generate_latest(), media_type="text/plain")
 
-# --- API Routers ---
-from app.api.routers import router as api_router
 
+# --- API Routers ---
 app.include_router(api_router, prefix="/v1")

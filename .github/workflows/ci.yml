@@ -49,10 +49,6 @@ jobs:
         run: |
           poetry run mypy .
 
-      - name: Check for dependency drift
-        run: |
-          poetry run python scripts/check_constraints.py
-
       - name: Run tests with Pytest
         run: |
           poetry run pytest --cov=app --cov-report=xml

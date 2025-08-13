@@ -1,9 +1,7 @@
-import os
 from importlib.metadata import version, PackageNotFoundError
-from pathlib import Path
 
 import mlflow
-import yaml
+import yaml  # type: ignore[import-untyped]
 from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 from typing import Literal
@@ -17,7 +15,7 @@ logger = get_logger(__name__)
 # --- Configuration ---
 
 # Rules: library -> "exact" or "compatible"
-VALIDATION_RULES = {
+VALIDATION_RULES: dict[str, Literal["exact", "compatible"]] = {
     "scikit-learn": "exact",
     "xgboost": "exact",
     "lightgbm": "exact",
@@ -28,8 +26,10 @@ VALIDATION_RULES = {
 
 # --- Schemas & Exceptions ---
 
+
 class DependencyError(BaseModel):
     """A single dependency validation error."""
+
     library: str
     required: str
     running: str
@@ -39,18 +39,21 @@ class DependencyError(BaseModel):
 
 class DependencyValidationError(Exception):
     """Custom exception for dependency validation errors."""
+
     def __init__(self, message: str, errors: list[DependencyError]):
         super().__init__(message)
         self.errors = errors
 
+
 # --- Validator ---
+
 
 class DependencyValidator:
     """
     Validates the dependencies of an MLflow model against the current environment.
     """
 
-    def validate(self, model_uri: str):
+    def validate(self, model_uri: str) -> None:
         """
         Parses model dependencies and compares them against the current environment.
         Raises DependencyValidationError if there are mismatches.
@@ -59,11 +62,15 @@ class DependencyValidator:
         errors = []
 
         try:
-            model_path = mlflow.artifacts.download_artifacts(artifact_uri=f"{model_uri}/MLmodel")
+            model_path = mlflow.artifacts.download_artifacts(
+                artifact_uri=f"{model_uri}/MLmodel"
+            )
             with open(model_path) as f:
                 mlmodel = yaml.safe_load(f)
         except Exception as e:
-            raise DependencyValidationError(f"Failed to download or parse MLmodel file from {model_uri}", []) from e
+            raise DependencyValidationError(
+                f"Failed to download or parse MLmodel file from {model_uri}", []
+            ) from e
 
         # Check for GPU requirements in a CPU-only environment
         self._check_for_gpu_flavors(mlmodel)
@@ -71,7 +78,9 @@ class DependencyValidator:
         # Find conda.yaml or requirements.txt
         dependencies = self._get_dependencies_from_mlmodel(mlmodel, model_uri)
         if not dependencies:
-            logger.warning("No supported dependency file found for model", model_uri=model_uri)
+            logger.warning(
+                "No supported dependency file found for model", model_uri=model_uri
+            )
             return
 
         for lib, rule in VALIDATION_RULES.items():
@@ -118,7 +127,9 @@ class DependencyValidator:
 
         logger.info("Dependency validation successful", model_uri=model_uri)
 
-    def _get_dependencies_from_mlmodel(self, mlmodel: dict, model_uri: str) -> dict[str, str]:
+    def _get_dependencies_from_mlmodel(
+        self, mlmodel: dict, model_uri: str
+    ) -> dict[str, str]:
         """Extracts pip dependencies from conda.yaml or requirements.txt."""
         flavors = mlmodel.get("flavors", {})
         python_flavor = flavors.get("python_function", {})
@@ -130,11 +141,15 @@ class DependencyValidator:
         elif "virtualenv" in env_config:
             env_path = env_config["virtualenv"]
         else:
-            logger.warning("No conda or virtualenv env found in MLmodel", model_uri=model_uri)
+            logger.warning(
+                "No conda or virtualenv env found in MLmodel", model_uri=model_uri
+            )
             return {}
 
         try:
-            deps_path = mlflow.artifacts.download_artifacts(artifact_uri=f"{model_uri}/{env_path}")
+            deps_path = mlflow.artifacts.download_artifacts(
+                artifact_uri=f"{model_uri}/{env_path}"
+            )
 
             if env_path.endswith(".txt"):
                 return self._parse_requirements_txt(deps_path)
@@ -142,7 +157,9 @@ class DependencyValidator:
                 return self._parse_conda_yaml(deps_path)
 
         except Exception as e:
-            logger.warning("Could not read or parse environment file", path=env_path, exc_info=e)
+            logger.warning(
+                "Could not read or parse environment file", path=env_path, exc_info=e
+            )
             return {}
 
     def _parse_conda_yaml(self, file_path: str) -> dict[str, str]:
@@ -175,7 +192,13 @@ class DependencyValidator:
         if not line or line.startswith("#"):
             return None, ""
 
-        parts = line.replace("==", "=").replace("~=", "=").replace(">=", "=").replace("<=", "=").split("=")
+        parts = (
+            line.replace("==", "=")
+            .replace("~=", "=")
+            .replace(">=", "=")
+            .replace("<=", "=")
+            .split("=")
+        )
         lib = parts[0].strip()
         spec = f"=={parts[1].strip()}" if len(parts) > 1 else ""
         return lib, spec
@@ -184,7 +207,12 @@ class DependencyValidator:
         """Finds the version specifier for a library."""
         return dependencies.get(lib)
 
-    def _is_version_valid(self, required_spec_str: str, installed_version: Version, rule: str) -> bool:
+    def _is_version_valid(
+        self,
+        required_spec_str: str,
+        installed_version: Version,
+        rule: Literal["exact", "compatible"],
+    ) -> bool:
         """Checks if the installed version satisfies the required specifier based on the rule."""
         logger.debug(
             "Comparing versions",
@@ -200,7 +228,9 @@ class DependencyValidator:
         spec = SpecifierSet(required_spec_str)
 
         if len(list(spec)) != 1 or next(iter(spec)).operator not in ["==", "==="]:
-            logger.warning("Cannot validate complex specifier, skipping", spec=str(spec))
+            logger.warning(
+                "Cannot validate complex specifier, skipping", spec=str(spec)
+            )
             return True
 
         required_version = Version(next(iter(spec)).version)
@@ -224,10 +254,11 @@ class DependencyValidator:
         """
         flavors = mlmodel.get("flavors", {})
         has_gpu_flavor = (
-            "gputest" in flavors or
-            mlmodel.get("cuda_version") is not None or
-            flavors.get("tensorflow", {}).get("gpu") is True or
-            "onnx" in str(flavors) and "cuda" in str(flavors.get("onnx"))
+            "gputest" in flavors
+            or mlmodel.get("cuda_version") is not None
+            or flavors.get("tensorflow", {}).get("gpu") is True
+            or "onnx" in str(flavors)
+            and "cuda" in str(flavors.get("onnx"))
         )
 
         if has_gpu_flavor:
@@ -237,8 +268,9 @@ class DependencyValidator:
                 running="gpu",
                 policy="exact",
             )
-            logger.error("GPU model flavor detected in a CPU-only runtime", mlmodel=mlmodel)
+            logger.error(
+                "GPU model flavor detected in a CPU-only runtime", mlmodel=mlmodel
+            )
             raise DependencyValidationError(
-                "Model requires GPU but service runs on CPU.",
-                errors=[error]
+                "Model requires GPU but service runs on CPU.", errors=[error]
             )

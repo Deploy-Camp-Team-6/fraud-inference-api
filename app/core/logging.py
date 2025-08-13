@@ -1,5 +1,6 @@
 import logging
-import sys
+import logging.config
+from typing import cast
 
 import structlog
 from structlog.types import Processor
@@ -7,7 +8,7 @@ from structlog.types import Processor
 from app.core.config import settings
 
 
-def setup_logging():
+def setup_logging() -> None:
     """
     Configure structlog to format logs as JSON.
     """
@@ -42,8 +43,16 @@ def setup_logging():
             },
             "loggers": {
                 "": {"handlers": ["default"], "level": log_level, "propagate": True},
-                "uvicorn.error": {"handlers": ["default"], "level": "INFO", "propagate": False},
-                "uvicorn.access": {"handlers": ["default"], "level": "INFO", "propagate": False},
+                "uvicorn.error": {
+                    "handlers": ["default"],
+                    "level": "INFO",
+                    "propagate": False,
+                },
+                "uvicorn.access": {
+                    "handlers": ["default"],
+                    "level": "INFO",
+                    "propagate": False,
+                },
             },
         }
     )
@@ -64,4 +73,4 @@ def get_logger(name: str) -> structlog.stdlib.BoundLogger:
     """
     Get a structlog logger.
     """
-    return structlog.get_logger(name)
+    return cast(structlog.stdlib.BoundLogger, structlog.get_logger(name))
