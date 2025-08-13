@@ -48,4 +48,5 @@ class Settings(BaseSettings):
             return [SecretStr(key.strip()) for key in v.split(",") if key.strip()]
         return cast(list[SecretStr], v)
 
+
 settings = Settings()
