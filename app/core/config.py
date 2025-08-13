@@ -1,0 +1,68 @@
+import os
+from typing import Any, List, Optional
+
+from pydantic import field_validator, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """
+    Application settings.
+    """
+
+    # Service Info
+    BUILD_TIME: str = "dev"
+    GIT_SHA: str = "dev"
+
+    # MLflow Configuration
+    MLFLOW_TRACKING_URI: str
+    MLFLOW_TRACKING_USERNAME: Optional[str] = None
+    MLFLOW_TRACKING_PASSWORD: Optional[SecretStr] = None
+    MLFLOW_S3_ENDPOINT_URL: Optional[str] = None
+
+    # AWS Configuration (if using S3)
+    AWS_ACCESS_KEY_ID: Optional[str] = None
+    AWS_SECRET_ACCESS_KEY: Optional[SecretStr] = None
+    AWS_DEFAULT_REGION: Optional[str] = "us-east-1"
+
+    # API Security
+    API_KEYS: list[SecretStr] = []
+    REDIS_URL: Optional[str] = None
+
+    # Model & Prediction Configuration
+    SERVICE_THRESHOLD: float = 0.5
+    ALLOW_EXTRA: bool = False
+    INFER_TIMEOUT_MS: int = 5000
+
+    # Web Server Configuration
+    LOG_LEVEL: str = "info"
+    WORKERS: int = 2
+    REQUEST_MAX_BYTES: int = 1_048_576  # 1MB
+    READ_TIMEOUT: int = 5
+    WRITE_TIMEOUT: int = 30
+
+    # CORS
+    CORS_ORIGINS: list[str] = []
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
+
+    @field_validator("API_KEYS", mode="before")
+    @classmethod
+    def assemble_api_keys(cls, v: Any) -> list[SecretStr]:
+        if isinstance(v, str):
+            return [SecretStr(key.strip()) for key in v.split(",") if key.strip()]
+        return v
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def assemble_cors_origins(cls, v: Any) -> list[str]:
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
+
+
+settings = Settings()
