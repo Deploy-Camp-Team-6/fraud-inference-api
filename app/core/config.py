@@ -25,9 +25,6 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: Optional[SecretStr] = None
     AWS_DEFAULT_REGION: Optional[str] = "us-east-1"
 
-    # API Security
-    API_KEYS: list[str] = ["dev-key-1", "dev-key-2"]
-
     # Model & Prediction Configuration
     SERVICE_THRESHOLD: float = 0.5
     ALLOW_EXTRA: bool = False
@@ -54,13 +51,6 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
     )
-
-    @field_validator("API_KEYS", mode="before")
-    @classmethod
-    def assemble_api_keys(cls, v: Any) -> list[str]:
-        if isinstance(v, str):
-            return [key.strip() for key in v.split(",") if key.strip()]
-        return cast(list[str], v)
 
     @field_validator("DEPENDENCY_VALIDATION_RULES", mode="before")
     @classmethod
