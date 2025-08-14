@@ -18,9 +18,7 @@ def get_inference_service():
     return InferenceService()
 
 
-@router.post(
-    "/admin/refresh-models", tags=["Admin"]
-)
+@router.post("/admin/refresh-models", tags=["Admin"])
 async def refresh_models() -> Dict[str, Dict[str, str]]:
     """
     Reloads all models from the registry, providing a hot-swap.
