@@ -97,6 +97,7 @@ def _create_warmup_payload(signature: dict, n_rows: int = 1) -> pd.DataFrame:
             name = spec.get("name") or f"f{i}"
             mlt = (spec.get("type") or "string").lower()
 
+        val: int | float | str | bool
         if mlt in ("long", "integer", "int"):
             val = 0
         elif mlt in ("float", "double"):
