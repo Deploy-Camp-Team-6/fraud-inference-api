@@ -101,8 +101,7 @@ curl -X POST "http://localhost:8000/v1/predict" \
 ```bash
 curl -X 'POST' \
   'http://localhost:8000/v1/admin/refresh-models' \
-  -H 'accept: application/json' \
-  -H 'X-API-Key: your-secret-api-key'
+  -H 'accept: application/json'
 ```
 
 ## Configuration
@@ -110,7 +109,6 @@ curl -X 'POST' \
 The service is configured via environment variables. See `app/core/config.py` for a full list of available variables. Key variables include:
 
 - `MLFLOW_TRACKING_URI`: **Required**. The URI of your MLflow tracking server.
-- `API_KEYS`: Comma-separated list of valid API keys for admin endpoints.
 - `LOG_LEVEL`: `debug`, `info`, `warning`, `error`.
 - `WORKERS`: Number of uvicorn worker processes.
 - `CORS_ORIGINS`: Comma-separated list of allowed CORS origins.
@@ -130,7 +128,7 @@ A sample `deploy/stack.yml` is provided for deployment with Docker Swarm and Tra
 
 2.  **Prepare Environment**:
     - Ensure your Docker Swarm is running and connected.
-    - Configure secrets for sensitive environment variables like `API_KEYS` and cloud credentials.
+    - Configure secrets for sensitive environment variables like cloud credentials.
     - Update `deploy/stack.yml` with your actual image name, domain names, and secret names.
 
 3.  **Deploy Stack**:

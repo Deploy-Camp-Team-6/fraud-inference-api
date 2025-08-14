@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict
 
 from app.core.config import settings
-from app.core.security import get_api_key
 from app.models.store import model_store
 from app.schemas.predict import (
     PredictRequest,
@@ -19,9 +18,7 @@ def get_inference_service():
     return InferenceService()
 
 
-@router.post(
-    "/admin/refresh-models", tags=["Admin"], dependencies=[Depends(get_api_key)]
-)
+@router.post("/admin/refresh-models", tags=["Admin"])
 async def refresh_models() -> Dict[str, Dict[str, str]]:
     """
     Reloads all models from the registry, providing a hot-swap.
