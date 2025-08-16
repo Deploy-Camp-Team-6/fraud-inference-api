@@ -122,6 +122,7 @@ jobs:
           script: |
             set -euo pipefail
             STACK_NAME="${{ secrets.SWARM_STACK_NAME }}"
+            INTERNAL_NET="${{ secrets.INTERNAL_NET || 'fraudai-internal' }}"
 
             # ---- compose variable substitution ----
             export DOMAIN="${{ secrets.DOMAIN }}"
@@ -131,8 +132,22 @@ jobs:
             export MLFLOW_S3_ENDPOINT_URL="${{ secrets.MLFLOW_S3_ENDPOINT_URL }}"
             export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
             export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+            export INTERNAL_NET  # used by the stack file's networks.internal.name
 
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            # ---- ensure swarm initialized (no-op if already) ----
+            docker info | grep -q 'Swarm: active' || docker swarm init >/dev/null 2>&1 || true
+
+            # ---- ensure overlay network exists (idempotent) ----
+            if ! docker network inspect "$INTERNAL_NET" >/dev/null 2>&1; then
+              docker network create -d overlay --attachable "$INTERNAL_NET"
+              echo "Created overlay network: $INTERNAL_NET"
+            else
+              echo "Overlay network already exists: $INTERNAL_NET"
+            fi
+
+            # ---- deploy ----
             docker stack deploy -c /tmp/stack.resolved.yml "$STACK_NAME" --with-registry-auth
 
             SERVICE="${STACK_NAME}_inference-api"

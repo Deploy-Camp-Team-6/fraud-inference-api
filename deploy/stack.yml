@@ -1,5 +1,9 @@
 version: '3.8'
 
+networks:
+  fraudai-internal:
+    external: true
+
 services:
   inference-api:
     image: ${IMAGE_NAME}
@@ -13,7 +17,7 @@ services:
       LOG_LEVEL: "${LOG_LEVEL:-info}"
       WORKERS: "${WORKERS:-4}"
     networks:
-      - traefik-public
+      - fraudai-internal
     deploy:
       replicas: 1
       update_config:
@@ -23,14 +27,4 @@ services:
       restart_policy:
         condition: on-failure
       labels:
-        - traefik.enable=true
-        - traefik.docker.network=traefik-public
-        - traefik.http.services.inference-api.loadbalancer.server.port=8000
-        - traefik.http.routers.inference-api.rule=Host(`${DOMAIN}`)
-        - traefik.http.routers.inference-api.entrypoints=websecure
-        - traefik.http.routers.inference-api.tls=true
-        - traefik.http.routers.inference-api.tls.certresolver=leresolver
-
-networks:
-  traefik-public:
-    external: true
+        - traefik.enable=false   # ensure Traefik ignores this service
